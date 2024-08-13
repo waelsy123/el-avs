@@ -9,11 +9,8 @@ import "@openzeppelin-upgrades/contracts/utils/cryptography/ECDSAUpgradeable.sol
 import "@eigenlayer/contracts/permissions/Pausable.sol";
 import {IRegistryCoordinator} from "@eigenlayer-middleware/src/interfaces/IRegistryCoordinator.sol";
 import "./IHelloWorldServiceManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/**
- * @title Primary entrypoint for procuring services from HelloWorld.
- * @author Eigen Labs, Inc.
- */
 contract HelloWorldServiceManager is
     ECDSAServiceManagerBase,
     IHelloWorldServiceManager,
@@ -35,6 +32,20 @@ contract HelloWorldServiceManager is
     // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
     mapping(address => mapping(uint32 => bytes)) public allTaskResponses;
 
+    uint32 public latestLoanId;
+    uint256 public liquidationRatio = 1 ether;
+    IERC20 public debtToken;
+    uint256 public debtTokenPriceInWei; // Price of 1 debt token in wei
+
+    struct Loan {
+        address borrower;
+        uint256 collateralAmount; // in wei
+        uint256 debtAmount; // in debt tokens
+        bool isLiquidated;
+    }
+
+    mapping(uint32 => Loan) public loans;
+
     /* MODIFIERS */
     modifier onlyOperator() {
         require(
@@ -48,7 +59,8 @@ contract HelloWorldServiceManager is
     constructor(
         address _avsDirectory,
         address _stakeRegistry,
-        address _delegationManager
+        address _delegationManager,
+        address _debtToken
     )
         ECDSAServiceManagerBase(
             _avsDirectory,
@@ -56,7 +68,9 @@ contract HelloWorldServiceManager is
             address(0), // hello-world doesn't need to deal with payments
             _delegationManager
         )
-    {}
+    {
+        debtToken = IERC20(_debtToken);
+    }
 
     /* FUNCTIONS */
     // NOTE: this function creates new task, assigns it a taskId
@@ -118,4 +132,104 @@ contract HelloWorldServiceManager is
             ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >=
             ECDSAStakeRegistry(stakeRegistry).minimumWeight();
     }
+
+    // lending
+    function setDebtTokenPriceInWei(uint256 _priceInWei) external onlyOperator {
+        debtTokenPriceInWei = _priceInWei;
+        emit DebtTokenPriceUpdated(_priceInWei);
+    }
+
+    function createLoan(uint256 debtAmount) external payable {
+        require(msg.value > 0, "Collateral required");
+        require(debtTokenPriceInWei > 0, "Debt token price not set");
+
+        // Calculate the value of the collateral in wei and the value of the debt in wei
+        uint256 collateralValueInWei = msg.value;
+        uint256 debtValueInWei = debtAmount * debtTokenPriceInWei;
+
+        // Ensure that the collateral value respects the liquidation ratio
+        uint256 requiredCollateral = (debtValueInWei * liquidationRatio) /
+            1 ether;
+        require(
+            collateralValueInWei >= requiredCollateral,
+            "Insufficient collateral for the requested loan"
+        );
+
+        Loan memory newLoan = Loan({
+            borrower: msg.sender,
+            collateralAmount: msg.value,
+            debtAmount: debtAmount,
+            isLiquidated: false
+        });
+
+        loans[latestLoanId] = newLoan;
+        debtToken.transfer(msg.sender, debtAmount);
+
+        emit LoanCreated(latestLoanId, msg.sender, msg.value, debtAmount);
+        latestLoanId += 1;
+    }
+
+    function payLoan(uint32 loanId) external {
+        Loan storage loan = loans[loanId];
+
+        require(!loan.isLiquidated, "Loan already liquidated");
+        require(msg.sender == loan.borrower, "Only borrower can pay the loan");
+
+        debtToken.transferFrom(msg.sender, address(this), loan.debtAmount);
+        payable(msg.sender).transfer(loan.collateralAmount);
+        loan.collateralAmount = 0;
+        loan.debtAmount = 0;
+        loan.isLiquidated = true;
+
+        // delete loans[loanId];
+
+        emit LoanRepaid(loanId, msg.sender);
+    }
+
+    function liquidateLoan(uint32 loanId) external onlyOperator {
+        Loan storage loan = loans[loanId];
+
+        require(!loan.isLiquidated, "Loan already liquidated");
+
+        uint256 debtValueInWei = loan.debtAmount * debtTokenPriceInWei;
+        uint256 collateralRatio = (loan.collateralAmount * 1 ether) /
+            debtValueInWei;
+
+        require(collateralRatio < liquidationRatio, "Collateral sufficient");
+
+        // Calculate how much debt token is required to cover the loan's collateral amount
+        uint256 requiredDebtTokens = loan.collateralAmount /
+            debtTokenPriceInWei;
+
+        // Operator transfers the required debt tokens to this contract
+        debtToken.transferFrom(msg.sender, address(this), requiredDebtTokens);
+
+        // Transfer the loan's collateral to the liquidator
+        payable(msg.sender).transfer(loan.collateralAmount);
+
+        loan.isLiquidated = true;
+
+        emit LoanLiquidated(
+            loanId,
+            msg.sender,
+            loan.collateralAmount,
+            requiredDebtTokens
+        );
+    }
+
+    /* EVENTS */
+    event DebtTokenPriceUpdated(uint256 newPriceInWei);
+    event LoanCreated(
+        uint32 loanId,
+        address borrower,
+        uint256 collateralAmount,
+        uint256 debtAmount
+    );
+    event LoanLiquidated(
+        uint32 loanId,
+        address operator,
+        uint256 collateralAmount,
+        uint256 debtTokensPaid
+    );
+    event LoanRepaid(uint32 loanId, address borrower);
 }

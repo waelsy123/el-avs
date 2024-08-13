@@ -26,7 +26,7 @@ contract HoleskyDeployer is Script, Utils {
     // Hello World contracts
     ProxyAdmin public helloWorldProxyAdmin;
     PauserRegistry public helloWorldPauserReg;
-    
+
     ECDSAStakeRegistry public stakeRegistryProxy;
     ECDSAStakeRegistry public stakeRegistryImplementation;
 
@@ -42,12 +42,20 @@ contract HoleskyDeployer is Script, Utils {
         address eigenLayerPauserRegAddr = 0x85Ef7299F8311B25642679edBF02B62FA2212F06;
         address baseStrategyImplementationAddr = 0x80528D6e9A2BAbFc766965E0E26d5aB08D9CFaF9;
 
-        IStrategyManager strategyManager = IStrategyManager(strategyManagerAddr);
-        IDelegationManager delegationManager = IDelegationManager(delegationManagerAddr);
+        IStrategyManager strategyManager = IStrategyManager(
+            strategyManagerAddr
+        );
+        IDelegationManager delegationManager = IDelegationManager(
+            delegationManagerAddr
+        );
         IAVSDirectory avsDirectory = IAVSDirectory(avsDirectoryAddr);
         ProxyAdmin eigenLayerProxyAdmin = ProxyAdmin(eigenLayerProxyAdminAddr);
-        PauserRegistry eigenLayerPauserReg = PauserRegistry(eigenLayerPauserRegAddr);
-        StrategyBase baseStrategyImplementation = StrategyBase(baseStrategyImplementationAddr);
+        PauserRegistry eigenLayerPauserReg = PauserRegistry(
+            eigenLayerPauserRegAddr
+        );
+        StrategyBase baseStrategyImplementation = StrategyBase(
+            baseStrategyImplementationAddr
+        );
 
         address helloWorldCommunityMultisig = msg.sender;
         address helloWorldPauser = msg.sender;
@@ -113,24 +121,25 @@ contract HoleskyDeployer is Script, Utils {
             );
 
             helloWorldProxyAdmin.upgrade(
-                TransparentUpgradeableProxy(payable(address(stakeRegistryProxy))),
+                TransparentUpgradeableProxy(
+                    payable(address(stakeRegistryProxy))
+                ),
                 address(stakeRegistryImplementation)
             );
         }
 
-        {   
+        {
             // Create an array with one StrategyParams element
             StrategyParams memory strategyParams = StrategyParams({
                 strategy: baseStrategyImplementation,
                 multiplier: 10_000
             });
 
-            StrategyParams[] memory quorumsStrategyParams = new StrategyParams[](1);
+            StrategyParams[]
+                memory quorumsStrategyParams = new StrategyParams[](1);
             quorumsStrategyParams[0] = strategyParams;
 
-            Quorum memory quorum = Quorum(
-                quorumsStrategyParams
-            );
+            Quorum memory quorum = Quorum(quorumsStrategyParams);
 
             // Sort the array (though it has only one element, it's trivially sorted)
             // If the array had more elements, you would need to ensure it is sorted by strategy address
@@ -153,6 +162,7 @@ contract HoleskyDeployer is Script, Utils {
             address(avsDirectory),
             address(stakeRegistryProxy),
             address(delegationManager)
+            // address(erc20Mock)
         );
         // Upgrade the proxy contracts to use the correct implementation contracts and initialize them.
         helloWorldProxyAdmin.upgrade(
@@ -181,7 +191,7 @@ contract HoleskyDeployer is Script, Utils {
             "ECDSAStakeRegistry",
             address(stakeRegistryProxy)
         );
-        
+
         string memory deployed_addresses_output = vm.serializeAddress(
             deployed_addresses,
             "ECDSAStakeRegistryImplementation",

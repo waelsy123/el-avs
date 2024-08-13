@@ -36,7 +36,7 @@ contract HelloWorldDeployer is Script, Utils {
     // Hello World contracts
     ProxyAdmin public helloWorldProxyAdmin;
     PauserRegistry public helloWorldPauserReg;
-    
+
     ECDSAStakeRegistry public stakeRegistryProxy;
     ECDSAStakeRegistry public stakeRegistryImplementation;
 
@@ -112,6 +112,8 @@ contract HelloWorldDeployer is Script, Utils {
         IStrategyManager strategyManager
     ) internal {
         erc20Mock = new ERC20Mock();
+
+        erc20Mock.mint(msg.sender, 10_000_000 * 10 ** 18);
         // TODO(samlaf): any reason why we are using the strategybase with tvl limits instead of just using strategybase?
         // the maxPerDeposit and maxDeposits below are just arbitrary values.
         erc20MockStrategy = StrategyBaseTVLLimits(
@@ -199,27 +201,27 @@ contract HelloWorldDeployer is Script, Utils {
             );
 
             helloWorldProxyAdmin.upgrade(
-                TransparentUpgradeableProxy(payable(address(stakeRegistryProxy))),
+                TransparentUpgradeableProxy(
+                    payable(address(stakeRegistryProxy))
+                ),
                 address(stakeRegistryImplementation)
             );
         }
 
-        {   
+        {
             StrategyParams[]
                 memory quorumsStrategyParams = new StrategyParams[](
                     numStrategies
-            );
-            
+                );
+
             for (uint j = 0; j < numStrategies; j++) {
                 quorumsStrategyParams[j] = StrategyParams({
-                        strategy: deployedStrategyArray[j],
-                        multiplier: 10_000
-                    });
+                    strategy: deployedStrategyArray[j],
+                    multiplier: 10_000
+                });
             }
-        
-            Quorum memory quorum = Quorum(
-                quorumsStrategyParams
-            );
+
+            Quorum memory quorum = Quorum(quorumsStrategyParams);
 
             helloWorldProxyAdmin.upgradeAndCall(
                 TransparentUpgradeableProxy(
@@ -239,6 +241,7 @@ contract HelloWorldDeployer is Script, Utils {
             address(avsDirectory),
             address(stakeRegistryProxy),
             address(delegationManager)
+            // address(erc20Mock)
         );
         // Third, upgrade the proxy contracts to use the correct implementation contracts and initialize them.
         helloWorldProxyAdmin.upgrade(
@@ -277,7 +280,7 @@ contract HelloWorldDeployer is Script, Utils {
             "ECDSAStakeRegistry",
             address(stakeRegistryProxy)
         );
-        
+
         string memory deployed_addresses_output = vm.serializeAddress(
             deployed_addresses,
             "ECDSAStakeRegistryImplementation",
