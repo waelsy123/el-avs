@@ -9,38 +9,33 @@ import "@openzeppelin-upgrades/contracts/utils/cryptography/ECDSAUpgradeable.sol
 import "@eigenlayer/contracts/permissions/Pausable.sol";
 import {IRegistryCoordinator} from "@eigenlayer-middleware/src/interfaces/IRegistryCoordinator.sol";
 import "./IHelloWorldServiceManager.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "forge-std/console.sol";
 
-/**
- * @title Primary entrypoint for procuring services from HelloWorld.
- * @author Eigen Labs, Inc.
- */
-contract HelloWorldServiceManager is 
-    ECDSAServiceManagerBase,
-    IHelloWorldServiceManager,
-    Pausable
-{
+contract HelloWorldServiceManager is ECDSAServiceManagerBase, Pausable {
     using BytesLib for bytes;
     using ECDSAUpgradeable for bytes32;
 
     /* STORAGE */
-    // The latest task index
-    uint32 public latestTaskNum;
+    uint32 public latestLoanId;
+    uint256 public liquidationRatio = 1 ether;
+    IERC20 public debtToken;
+    uint256 public debtTokenPriceInWei;
 
-    // mapping of task indices to all tasks hashes
-    // when a task is created, task hash is stored here,
-    // and responses need to pass the actual task,
-    // which is hashed onchain and checked against this mapping
-    mapping(uint32 => bytes32) public allTaskHashes;
+    struct Loan {
+        address borrower;
+        uint256 collateralAmount; // in wei
+        uint256 debtAmount; // in debt tokens
+        bool isLiquidated;
+    }
 
-    // mapping of task indices to hash of abi.encode(taskResponse, taskResponseMetadata)
-    mapping(address => mapping(uint32 => bytes)) public allTaskResponses;
+    mapping(uint32 => Loan) public loans;
 
     /* MODIFIERS */
     modifier onlyOperator() {
         require(
-            ECDSAStakeRegistry(stakeRegistry).operatorRegistered(msg.sender) 
-            == 
-            true, 
+            ECDSAStakeRegistry(stakeRegistry).operatorRegistered(msg.sender) ==
+                true,
             "Operator must be the caller"
         );
         _;
@@ -54,69 +49,148 @@ contract HelloWorldServiceManager is
         ECDSAServiceManagerBase(
             _avsDirectory,
             _stakeRegistry,
-            address(0), // hello-world doesn't need to deal with payments
+            address(0), // we do not need to deal with payments
             _delegationManager
         )
     {}
 
-
-    /* FUNCTIONS */
-    // NOTE: this function creates new task, assigns it a taskId
-    function createNewTask(
-        string memory name
-    ) external {
-        // create a new task struct
-        Task memory newTask;
-        newTask.name = name;
-        newTask.taskCreatedBlock = uint32(block.number);
-
-        // store hash of task onchain, emit event, and increase taskNum
-        allTaskHashes[latestTaskNum] = keccak256(abi.encode(newTask));
-        emit NewTaskCreated(latestTaskNum, newTask);
-        latestTaskNum = latestTaskNum + 1;
+    function setup(
+        address _debtToken,
+        uint256 _priceInWei,
+        uint256 _liquidationRatio
+    ) public {
+        liquidationRatio = _liquidationRatio;
+        debtToken = IERC20(_debtToken);
+        setDebtTokenPriceInWei(_priceInWei);
     }
 
-    // NOTE: this function responds to existing tasks.
-    function respondToTask(
-        Task calldata task,
-        uint32 referenceTaskIndex,
-        bytes calldata signature
-    ) external onlyOperator {
+    // for demo
+    function setDebtTokenPriceInWei(uint256 _priceInWei) public {
+        debtTokenPriceInWei = _priceInWei;
+        emit DebtTokenPriceUpdated(_priceInWei);
+    }
+
+    function getLoanById(uint32 loanId) public view returns (Loan memory) {
+        Loan memory loan = loans[loanId];
+        return loan;
+    }
+
+    function createLoan(
+        uint256 debtAmountInWei
+    ) external payable returns (uint32) {
+        uint32 loanId = latestLoanId;
+
+        require(msg.value > 0, "Collateral required");
+        require(debtTokenPriceInWei > 0, "Debt token price not set");
+
+        // Calculate the value of the collateral in wei and the value of the debt in wei
+        uint256 collateralValueInWei = msg.value;
+        console.log("collateralValueInWei :", collateralValueInWei);
+
+        uint256 debtValueInWei = (debtAmountInWei * debtTokenPriceInWei) /
+            1 ether;
+
+        console.log("debtValueInWei :", debtValueInWei);
+
+        // Ensure that the collateral value respects the liquidation ratio
+        uint256 requiredCollateral = (debtValueInWei * liquidationRatio) /
+            1 ether;
+
+        console.log("requiredCollateral :", requiredCollateral);
+
+        require(
+            collateralValueInWei > requiredCollateral,
+            "Insufficient collateral for the requested loan"
+        );
+
+        Loan memory newLoan = Loan({
+            borrower: msg.sender,
+            collateralAmount: msg.value,
+            debtAmount: debtAmountInWei,
+            isLiquidated: false
+        });
+
+        loans[loanId] = newLoan;
+        debtToken.transfer(msg.sender, debtAmountInWei);
+
+        emit LoanCreated(loanId, msg.sender, msg.value, debtAmountInWei);
+        latestLoanId += 1;
+
+        return loanId;
+    }
+
+    function payLoan(uint32 loanId) external {
+        Loan storage loan = loans[loanId];
+
+        require(!loan.isLiquidated, "Loan already liquidated");
+        require(msg.sender == loan.borrower, "Only borrower can pay the loan");
+        require(debtTokenPriceInWei > 0, "Debt token price not set");
+
+        debtToken.transferFrom(msg.sender, address(this), loan.debtAmount);
+        payable(msg.sender).transfer(loan.collateralAmount);
+        loan.collateralAmount = 0;
+        loan.debtAmount = 0;
+        loan.isLiquidated = true;
+
+        emit LoanRepaid(loanId, msg.sender);
+    }
+
+    function liquidateLoan(uint32 loanId) external onlyOperator {
         require(
             operatorHasMinimumWeight(msg.sender),
             "Operator does not have match the weight requirements"
         );
-        // check that the task is valid, hasn't been responsed yet, and is being responded in time
+
+        Loan storage loan = loans[loanId];
+
+        require(!loan.isLiquidated, "Loan already liquidated");
+        require(debtTokenPriceInWei > 0, "Debt token price not set");
+
+        uint256 collateralRatio = getLoanHealthRatio(loanId);
+
         require(
-            keccak256(abi.encode(task)) ==
-                allTaskHashes[referenceTaskIndex],
-            "supplied task does not match the one recorded in the contract"
-        );
-        // some logical checks
-        require(
-            allTaskResponses[msg.sender][referenceTaskIndex].length == 0,
-            "Operator has already responded to the task"
+            collateralRatio < liquidationRatio,
+            "Collateral still sufficient"
         );
 
-        // The message that was signed
-        bytes32 messageHash = keccak256(abi.encodePacked("Hello, ", task.name));
-        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
+        debtToken.transferFrom(msg.sender, address(this), loan.debtAmount);
 
-        // Recover the signer address from the signature
-        address signer = ethSignedMessageHash.recover(signature);
+        payable(msg.sender).transfer(loan.collateralAmount);
 
-        require(signer == msg.sender, "Message signer is not operator");
+        loan.isLiquidated = true;
 
-        // updating the storage with task responses
-        allTaskResponses[msg.sender][referenceTaskIndex] = signature;
-
-        // emitting event
-        emit TaskResponded(referenceTaskIndex, task, msg.sender);
+        emit LoanLiquidated(loanId, msg.sender, loan.collateralAmount);
     }
+
+    function getLoanHealthRatio(uint32 loanId) public view returns (uint256) {
+        Loan memory loan = loans[loanId];
+        uint256 debtValueInWei = loan.debtAmount * debtTokenPriceInWei;
+        if (debtValueInWei == 0) return 0;
+        return ((loan.collateralAmount * 1 ether) * 1 ether) / debtValueInWei;
+    }
+
+    /* EVENTS */
+    event DebtTokenPriceUpdated(uint256 newPriceInWei);
+    event LoanCreated(
+        uint32 loanId,
+        address borrower,
+        uint256 collateralAmount,
+        uint256 debtAmount
+    );
+    event LoanLiquidated(
+        uint32 loanId,
+        address operator,
+        uint256 collateralAmount
+    );
+    event LoanRepaid(uint32 loanId, address borrower);
 
     // HELPER
 
-    function operatorHasMinimumWeight(address operator) public view returns (bool) {
-        return ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >= ECDSAStakeRegistry(stakeRegistry).minimumWeight();
+    function operatorHasMinimumWeight(
+        address operator
+    ) public view returns (bool) {
+        return
+            ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >=
+            ECDSAStakeRegistry(stakeRegistry).minimumWeight();
     }
 }

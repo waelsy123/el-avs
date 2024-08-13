@@ -17,6 +17,12 @@ DEPLOYMENT_FILES_DIR=contracts/script/output/${CHAINID}
 
 ___CONTRACTS___: ##
 
+deploy-all: ## Build and deploy all contracts
+	make build-contracts
+	make deploy-eigenlayer-contracts-to-anvil-and-save-state
+	make deploy-hello-world-contracts-to-anvil-and-save-state
+	make start-operator
+	
 build-contracts: ## builds all contracts
 	cd contracts && forge build
 
@@ -46,10 +52,10 @@ send-fund: ## sends fund to the operator saved in tests/keys/test.ecdsa.key.json
 # TODO: piping to zap-pretty only works when zapper environment is set to production, unsure why
 ____OFFCHAIN_SOFTWARE___:
 start-operator: ## start operator (part of quickstart)
-	tsc && node dist/index.js
+	npx tsc && node dist/index.js
 
 spam-tasks: ## start tasks spamming (part of quickstart)
-	tsc && node dist/createNewTasks.js
+	npx tsc && node dist/createNewTasks.js
 
 -----------------------------: ##
 _____HELPER_____: ##
