@@ -9,7 +9,6 @@ import "@openzeppelin-upgrades/contracts/utils/cryptography/ECDSAUpgradeable.sol
 import "@eigenlayer/contracts/permissions/Pausable.sol";
 import {IRegistryCoordinator} from "@eigenlayer-middleware/src/interfaces/IRegistryCoordinator.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "forge-std/console.sol";
 
 contract LendingProtocolServiceManager is ECDSAServiceManagerBase, Pausable {
     using BytesLib for bytes;
@@ -84,18 +83,12 @@ contract LendingProtocolServiceManager is ECDSAServiceManagerBase, Pausable {
 
         // Calculate the value of the collateral in wei and the value of the debt in wei
         uint256 collateralValueInWei = msg.value;
-        console.log("collateralValueInWei :", collateralValueInWei);
-
         uint256 debtValueInWei = (debtAmountInWei * debtTokenPriceInWei) /
             1 ether;
-
-        console.log("debtValueInWei :", debtValueInWei);
 
         // Ensure that the collateral value respects the liquidation ratio
         uint256 requiredCollateral = (debtValueInWei * liquidationRatio) /
             1 ether;
-
-        console.log("requiredCollateral :", requiredCollateral);
 
         require(
             collateralValueInWei > requiredCollateral,

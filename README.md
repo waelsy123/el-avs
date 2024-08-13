@@ -2,27 +2,14 @@
 
 Welcome to the Lending Protocol AVS.
 
-This project shows you the simplest functionality you can expect from an AVS.
+![lending_protocol_avs.png](./assets/lending_protocol_avs.png)
 
-It will give you a concrete understanding of the basic components.
+It include:
+1. a DeFi lending protocol smart contract, a script to monitor the health of borrower positions.
+2. Reaches consensus on when a position is eligible for liquidation.
+3. Triggers the liquidation process on-chain when consensus is reached.
 
-![lending-protocol-png](./assets/lending-protocol-diagram.png)
-
-There are 5 steps to this AVS:
-- AVS consumer requests a "Lending Protocol" message to be generated and signed
-- AVS takes on the request by emitting an event for operators to pick up the request
-- any operator who is staked to serve this AVS takes this request, generates this message and signs it
-- the operator submits this message with their signature back to the AVS
-- *if the operator is in fact registered to the AVS and has the minimum needed stake, the submission is accepted*
-
-That's it. This simple flow highlights some of the core mechanics of how AVSs work.
-
-Where additional sophistication with AVSs come into the picture:
-- the nature of the request is more sophisticated than generating a constant string
-- the operators might need to coordinate with each other
-- the type of signature is different based on the constraints of the service
-- the type and amount of security used to secure the AVS
-- and so on...
+to run it locally, first we deploy EL contracts to local anvil running chain, create ERC20 mock strategy, and register the Lending protocol service in AVS directory.
 
 ## Quick Start
 
@@ -41,13 +28,11 @@ Following global NodeJS packages:
 ### Automated deployment (uses existing state file)
 
 1. Run `npm install`
-2. Run `cp .env.local .env`
-3. Run `make start-chain-with-contracts-deployed`
+2. Run `cp .env.local .env` and run `anvil`
+3. Run `make  deploy-all`
     * This will build the contracts, start an Anvil chain, deploy the contracts to it, and leaves the chain running in the current terminal
-4. Open new terminal tab and run `make start-operator`
-    * This will compile the AVS software and start monitering new tasks
-5. Open new terminal tab and run `make spam-tasks` (Optional)
-    * This will spam the AVS with random names every 15 seconds
+    It will also register operator and start an instance;
+
 
 ### Manual deployment
 
@@ -72,9 +57,7 @@ anvil
 To do so, change into `contracts/lib/eigenlayer-middleware/lib/eigenlayer-contracts` and run the following commands:
 
 ```sh
-forge script script/deploy/devnet/M2_Deploy_From_Scratch.s.sol --rpc-url http://localhost:8545 \
---private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast \
---sig "run(string memory configFile)" -- M2_deploy_from_scratch.anvil.config.json
+make deploy-eigenlayer-contracts-to-anvil-and-save-state
 ```
 
 6. In a separate terminal window, deploy the AVS contracts.
@@ -90,47 +73,6 @@ forge script script/LendingProtocolDeployer.s.sol --rpc-url http://localhost:854
 ```sh
 tsc && node dist/index.js
 ```
-
-8. In a separate window, start creating tasks
-
-```sh
-tsc && node dist/createNewTasks.js
-```
-
-## Rust instructions
-
-### Automated deployment (uses existing state file)
-
-1. Run `make start-chain-with-contracts-deployed`
-    * This will build the contracts, start an Anvil chain, deploy the contracts to it, and leaves the chain running in the current terminal
-
-2. Run `make start-rust-operator`
-
-3. Run `make spam-rust-tasks`
-
-Tests are supported in anvil only . Make sure to run the 1st command before running the  tests:
-
-```
-cargo test --workspace
-```
-
-
-##### Holesky Testnet
-
-| Contract Name               | Holesky Address                                   |
-| -------------               | -------------                                     |
-| Lending Protocol Service Manager | [0x3361953F4a9628672dCBcDb29e91735fb1985390](https://holesky.etherscan.io/address/0x3361953F4a9628672dCBcDb29e91735fb1985390)    |
-| Delegation Manager          | [0xA44151489861Fe9e3055d95adC98FbD462B948e7](https://holesky.etherscan.io/address/0xA44151489861Fe9e3055d95adC98FbD462B948e7)                                           |
-| Avs Directory               | [0x055733000064333CaDDbC92763c58BF0192fFeBf](https://holesky.etherscan.io/address/0x055733000064333CaDDbC92763c58BF0192fFeBf)      |
-
-You don't need to run any script for holesky testnet.
-
-1. Use the HOLESKY_ namespace env parameters in the code , instead of normal parameters.
-
-2. Run `make start-rust-operator`
-
-3. Run `make spam-rust-tasks `
-
 
 ## Extensions
 
