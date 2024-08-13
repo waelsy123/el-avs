@@ -18,8 +18,8 @@ use tokio::time::{self, Duration};
 pub static RPC_URL: Lazy<String> =
     Lazy::new(|| env::var("RPC_URL").expect("failed to get rpc url from env"));
 
-pub static HELLO_WORLD_CONTRACT_ADDRESS: Lazy<String> = Lazy::new(|| {
-    env::var("CONTRACT_ADDRESS").expect("failed to get hello world contract address from env")
+pub static LENDING_PROTOCOL_CONTRACT_ADDRESS: Lazy<String> = Lazy::new(|| {
+    env::var("CONTRACT_ADDRESS").expect("failed to get lending protocol contract address from env")
 });
 #[allow(unused)]
 static KEY: Lazy<String> =
@@ -27,8 +27,8 @@ static KEY: Lazy<String> =
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
-    HelloWorldServiceManager,
-    "json_abi/HelloWorldServiceManager.json"
+    LendingProtocolServiceManager,
+    "json_abi/LendingProtocolServiceManager.json"
 );
 
 #[allow(unused)]
@@ -47,16 +47,16 @@ fn generate_random_name() -> String {
 }
 
 #[allow(unused)]
-/// Calls CreateNewTask function of the Hello world service manager contract
+/// Calls CreateNewTask function of the Lending protocol service manager contract
 async fn create_new_task(task_name: &str) -> Result<()> {
-    let hello_world_contract_address = Address::from_str(&HELLO_WORLD_CONTRACT_ADDRESS)
-        .expect("wrong hello world contract address");
+    let lending_protocol_contract_address = Address::from_str(&LENDING_PROTOCOL_CONTRACT_ADDRESS)
+        .expect("wrong lending protocol contract address");
 
     let provider = get_provider_with_wallet(KEY.clone());
-    let hello_world_contract =
-        HelloWorldServiceManager::new(hello_world_contract_address, provider);
+    let lending_protocol_contract =
+        LendingProtocolServiceManager::new(lending_protocol_contract_address, provider);
 
-    let tx = hello_world_contract
+    let tx = lending_protocol_contract
         .createNewTask(task_name.to_string())
         .send()
         .await?

@@ -1,15 +1,15 @@
-# Hello World AVS
+# Lending Protocol AVS
 
-Welcome to the Hello World AVS.
+Welcome to the Lending Protocol AVS.
 
 This project shows you the simplest functionality you can expect from an AVS.
 
 It will give you a concrete understanding of the basic components.
 
-![hello-world-png](./assets/hello-world-diagram.png)
+![lending-protocol-png](./assets/lending-protocol-diagram.png)
 
 There are 5 steps to this AVS:
-- AVS consumer requests a "Hello World" message to be generated and signed
+- AVS consumer requests a "Lending Protocol" message to be generated and signed
 - AVS takes on the request by emitting an event for operators to pick up the request
 - any operator who is staked to serve this AVS takes this request, generates this message and signs it
 - the operator submits this message with their signature back to the AVS
@@ -82,7 +82,7 @@ forge script script/deploy/devnet/M2_Deploy_From_Scratch.s.sol --rpc-url http://
 ```sh
 cd contracts
 
-forge script script/HelloWorldDeployer.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast -v
+forge script script/LendingProtocolDeployer.s.sol --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast -v
 ```
 
 7. Start the operator
@@ -119,7 +119,7 @@ cargo test --workspace
 
 | Contract Name               | Holesky Address                                   |
 | -------------               | -------------                                     |
-| Hello World Service Manager | [0x3361953F4a9628672dCBcDb29e91735fb1985390](https://holesky.etherscan.io/address/0x3361953F4a9628672dCBcDb29e91735fb1985390)    |
+| Lending Protocol Service Manager | [0x3361953F4a9628672dCBcDb29e91735fb1985390](https://holesky.etherscan.io/address/0x3361953F4a9628672dCBcDb29e91735fb1985390)    |
 | Delegation Manager          | [0xA44151489861Fe9e3055d95adC98FbD462B948e7](https://holesky.etherscan.io/address/0xA44151489861Fe9e3055d95adC98FbD462B948e7)                                           |
 | Avs Directory               | [0x055733000064333CaDDbC92763c58BF0192fFeBf](https://holesky.etherscan.io/address/0x055733000064333CaDDbC92763c58BF0192fFeBf)      |
 
@@ -140,7 +140,7 @@ You don't need to run any script for holesky testnet.
 
 ## Deployment on Holesky
 
-To deploy the Hello World AVS contracts to the Holesky network, follow these steps:
+To deploy the Lending Protocol AVS contracts to the Holesky network, follow these steps:
 
 1. Ensure you have the necessary RPC URL and private key for the Holesky network.
 2. Run the deployment script using Foundry:
@@ -151,4 +151,4 @@ To deploy the Hello World AVS contracts to the Holesky network, follow these ste
 
 ## Adding a New Strategy
 
-To add a new strategy to the Hello World AVS, follow the guide provided in [`AddNewStrategy.md`](https://github.com/Layr-Labs/hello-world-avs/blob/master/AddNewStrategy.md). This guide walks you through the necessary steps to add and whitelist a new strategy for the AVS.
+To add a new strategy to the Lending Protocol AVS, follow the guide provided in [`AddNewStrategy.md`](https://github.com/Layr-Labs/lending-protocol-avs/blob/master/AddNewStrategy.md). This guide walks you through the necessary steps to add and whitelist a new strategy for the AVS.

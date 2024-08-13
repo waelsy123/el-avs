@@ -1,13 +1,13 @@
-### Guide: Adding a New Strategy to the Hello World AVS
+### Guide: Adding a New Strategy to the Lending Protocol AVS
 
-This guide will help you add a new strategy to the Hello World AVS using Foundry scripts.
+This guide will help you add a new strategy to the Lending Protocol AVS using Foundry scripts.
 
 ### Prerequisites
 
 Before starting, ensure you have the following:
 - A development environment set up with Foundry.
-- Access to the EigenLayer contracts and the Hello World AVS contracts.
-- A deployed instance of the Hello World AVS.
+- Access to the EigenLayer contracts and the Lending Protocol AVS contracts.
+- A deployed instance of the Lending Protocol AVS.
 - The following addresses:
   - Proxy Admin Address
   - Pauser Registry Address
@@ -15,7 +15,7 @@ Before starting, ensure you have the following:
   - Strategy Manager Address
   - Delegation Manager Address
   - AVS Directory Address
-  - Hello World Service Manager Proxy Address
+  - Lending Protocol Service Manager Proxy Address
   - ECDSA Stake Registry Proxy Address
 
 ### Step 1: Setup Your Environment
@@ -46,20 +46,20 @@ address baseStrategyImplementationAddr = /* Strategy Base Implementation Address
 address strategyManagerAddr = /* Strategy Manager Address */;
 address delegationManagerAddr = /* Delegation Manager Address */;
 address avsDirectoryAddr = /* AVS Directory Address */;
-address helloWorldServiceManagerProxyAddr = /* Hello World Service Manager Proxy Address */;
+address lendingProtocolServiceManagerProxyAddr = /* Lending Protocol Service Manager Proxy Address */;
 address stakeRegistryProxyAddr = /* ECDSA Stake Registry Proxy Address */;
 ```
 
 ### Step 5: Implement the `run` Function
 
-This function will serve as the entry point to deploy the strategy and update the Hello World AVS.
+This function will serve as the entry point to deploy the strategy and update the Lending Protocol AVS.
 
 ```solidity
 function run() external {
     ERC20Mock erc20Mock = new ERC20Mock();
     StrategyBaseTVLLimits erc20MockStrategy = _deployStrategy(erc20Mock);
     _whitelistStrategy(erc20MockStrategy);
-    _updateHelloWorldAVS(erc20MockStrategy);
+    _updateLendingProtocolAVS(erc20MockStrategy);
 }
 ```
 
@@ -110,13 +110,13 @@ function _whitelistStrategy(StrategyBaseTVLLimits erc20MockStrategy) internal {
 }
 ```
 
-#### Update the Hello World AVS
+#### Update the Lending Protocol AVS
 
 ```solidity
-function _updateHelloWorldAVS(StrategyBaseTVLLimits erc20MockStrategy) internal {
+function _updateLendingProtocolAVS(StrategyBaseTVLLimits erc20MockStrategy) internal {
     IDelegationManager delegationManager = IDelegationManager(delegationManagerAddr);
     IAVSDirectory avsDirectory = IAVSDirectory(avsDirectoryAddr);
-    HelloWorldServiceManager helloWorldServiceManagerProxy = HelloWorldServiceManager(helloWorldServiceManagerProxyAddr);
+    LendingProtocolServiceManager lendingProtocolServiceManagerProxy = LendingProtocolServiceManager(lendingProtocolServiceManagerProxyAddr);
     ECDSAStakeRegistry stakeRegistryProxy = ECDSAStakeRegistry(stakeRegistryProxyAddr);
 
     StrategyParams memory strategyParams = StrategyParams({
@@ -132,7 +132,7 @@ function _updateHelloWorldAVS(StrategyBaseTVLLimits erc20MockStrategy) internal 
     });
 
     stakeRegistryProxy.initialize(
-        address(helloWorldServiceManagerProxy),
+        address(lendingProtocolServiceManagerProxy),
         1,
         quorum
     );
@@ -149,4 +149,4 @@ forge script script/AddNewStrategy.s.sol:AddStrategyScript --rpc-url $RPC_URL --
 
 ### Conclusion
 
-This guide provides a step-by-step process to add a new strategy to the Hello World AVS using Foundry scripts. By following these steps, you should be able to deploy and integrate new strategies seamlessly. If you encounter any issues, feel free to reach out for support.
+This guide provides a step-by-step process to add a new strategy to the Lending Protocol AVS using Foundry scripts. By following these steps, you should be able to deploy and integrate new strategies seamlessly. If you encounter any issues, feel free to reach out for support.

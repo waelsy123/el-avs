@@ -218,7 +218,7 @@ export const contractABI = [
             {
                 "name": "",
                 "type": "tuple",
-                "internalType": "struct HelloWorldServiceManager.Loan",
+                "internalType": "struct LendingProtocolServiceManager.Loan",
                 "components": [
                     {
                         "name": "borrower",
@@ -522,7 +522,7 @@ export const contractABI = [
             {
                 "name": "task",
                 "type": "tuple",
-                "internalType": "struct IHelloWorldServiceManager.Task",
+                "internalType": "struct ILendingProtocolServiceManager.Task",
                 "components": [
                     {
                         "name": "name",
@@ -775,7 +775,7 @@ export const contractABI = [
                 "name": "task",
                 "type": "tuple",
                 "indexed": false,
-                "internalType": "struct IHelloWorldServiceManager.Task",
+                "internalType": "struct ILendingProtocolServiceManager.Task",
                 "components": [
                     {
                         "name": "name",
@@ -882,7 +882,7 @@ export const contractABI = [
                 "name": "task",
                 "type": "tuple",
                 "indexed": false,
-                "internalType": "struct IHelloWorldServiceManager.Task",
+                "internalType": "struct ILendingProtocolServiceManager.Task",
                 "components": [
                     {
                         "name": "name",

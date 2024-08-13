@@ -7,9 +7,9 @@ dotenv.config();
 
 import * as fs from 'fs';
 
-const { addresses: avsAddresses } = JSON.parse(fs.readFileSync('contracts/script/output/31337/hello_world_avs_deployment_output.json', 'utf-8'));
+const { addresses: avsAddresses } = JSON.parse(fs.readFileSync('contracts/script/output/31337/lending_protocol_avs_deployment_output.json', 'utf-8'));
 const { addresses: elAddresses } = JSON.parse(fs.readFileSync('contracts/script/output/31337/eigenlayer_deployment_output.json', 'utf-8'));
-const { abi: contractABI } = JSON.parse(fs.readFileSync('contracts/out/HelloWorldServiceManager.sol/HelloWorldServiceManager.json', 'utf-8'));
+const { abi: contractABI } = JSON.parse(fs.readFileSync('contracts/out/LendingProtocolServiceManager.sol/LendingProtocolServiceManager.json', 'utf-8'));
 
 const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
@@ -17,7 +17,7 @@ const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 const LIQUIDATION_RATIO = 1;
 
 const delegationManagerAddress = elAddresses.delegation;
-const contractAddress = avsAddresses.HelloWorldServiceManagerProxy;
+const contractAddress = avsAddresses.LendingProtocolServiceManagerProxy;
 const erc20MockAddress = avsAddresses.erc20Mock;
 const stakeRegistryAddress = avsAddresses.ECDSAStakeRegistry;
 const avsDirectoryAddress = elAddresses.avsDirectory;
@@ -143,7 +143,6 @@ const createLoan = async () => {
     return loanId;
 };
 
-
 const setupAVS = async () => {
     const contract = new ethers.Contract(contractAddress, contractABI, wallet);
     const price = ethers.utils.parseEther("1");
@@ -157,7 +156,6 @@ const setupAVS = async () => {
     await tx.wait();
 };
 
-
 const getETHBalances = async () => {
     const walletBalance = await provider.getBalance(wallet.address);
     const contractBalance = await provider.getBalance(contractAddress);
@@ -168,7 +166,7 @@ const getETHBalances = async () => {
 
 const getLoanById = async (loanId: number) => {
     const loan = await contract.getLoanById(loanId);
-    console.log("🚀 ~ getLoanById ~ loan:", loan)
+    // console.log("🚀 ~ getLoanById ~ loan:", loan)
 
     return loan;
 };

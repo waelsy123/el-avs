@@ -8,11 +8,10 @@ import "@eigenlayer-middleware/src/unaudited/ECDSAStakeRegistry.sol";
 import "@openzeppelin-upgrades/contracts/utils/cryptography/ECDSAUpgradeable.sol";
 import "@eigenlayer/contracts/permissions/Pausable.sol";
 import {IRegistryCoordinator} from "@eigenlayer-middleware/src/interfaces/IRegistryCoordinator.sol";
-import "./IHelloWorldServiceManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "forge-std/console.sol";
 
-contract HelloWorldServiceManager is ECDSAServiceManagerBase, Pausable {
+contract LendingProtocolServiceManager is ECDSAServiceManagerBase, Pausable {
     using BytesLib for bytes;
     using ECDSAUpgradeable for bytes32;
 

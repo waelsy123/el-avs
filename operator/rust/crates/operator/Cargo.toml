@@ -1,6 +1,6 @@
 [package]
-name = "hello-world-avs-operator"
-description = "Hello world avs operator start and spam utilities"
+name = "lending-protocol-avs-operator"
+description = "Lending protocol avs operator start and spam utilities"
 
 version.workspace = true
 edition.workspace = true

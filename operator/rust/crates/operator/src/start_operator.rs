@@ -10,7 +10,7 @@ use dotenv::dotenv;
 use once_cell::sync::Lazy;
 use rand::RngCore;
 use reqwest::Url;
-use HelloWorldServiceManager::Task;
+use LendingProtocolServiceManager::Task;
 
 use alloy_primitives::{eip191_hash_message, Address, FixedBytes, U256};
 use alloy_signer::Signer;
@@ -30,8 +30,8 @@ use ECDSAStakeRegistry::SignatureWithSaltAndExpiry;
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
-    HelloWorldServiceManager,
-    "json_abi/HelloWorldServiceManager.json"
+    LendingProtocolServiceManager,
+    "json_abi/LendingProtocolServiceManager.json"
 );
 
 use eigen_utils::binding::ECDSAStakeRegistry;
@@ -42,8 +42,8 @@ static KEY: Lazy<String> =
 pub static RPC_URL: Lazy<String> =
     Lazy::new(|| env::var("RPC_URL").expect("failed to get rpc url from env"));
 
-pub static HELLO_WORLD_CONTRACT_ADDRESS: Lazy<String> = Lazy::new(|| {
-    env::var("CONTRACT_ADDRESS").expect("failed to get hello world contract address from env")
+pub static LENDING_PROTOCOL_CONTRACT_ADDRESS: Lazy<String> = Lazy::new(|| {
+    env::var("CONTRACT_ADDRESS").expect("failed to get lending protocol contract address from env")
 });
 
 static DELEGATION_MANAGER_CONTRACT_ADDRESS: Lazy<String> = Lazy::new(|| {
@@ -74,12 +74,12 @@ async fn sign_and_response_to_task(
     let signature = wallet.sign_hash(&msg_hash).await?;
 
     println!("Signing and responding to task : {:?}", task_index);
-    let hello_world_contract_address = Address::from_str(&HELLO_WORLD_CONTRACT_ADDRESS)
-        .expect("wrong hello world contract address");
-    let hello_world_contract =
-        HelloWorldServiceManager::new(hello_world_contract_address, &provider);
+    let lending_protocol_contract_address = Address::from_str(&LENDING_PROTOCOL_CONTRACT_ADDRESS)
+        .expect("wrong lending protocol contract address");
+    let lending_protocol_contract =
+        LendingProtocolServiceManager::new(lending_protocol_contract_address, &provider);
 
-    hello_world_contract
+    lending_protocol_contract
         .respondToTask(
             Task {
                 name,
@@ -100,19 +100,19 @@ async fn sign_and_response_to_task(
 async fn monitor_new_tasks() -> Result<()> {
     let provider = get_provider_with_wallet(KEY.clone());
 
-    let hello_world_contract_address = Address::from_str(&HELLO_WORLD_CONTRACT_ADDRESS)
-        .expect("wrong hello world contract address");
+    let lending_protocol_contract_address = Address::from_str(&LENDING_PROTOCOL_CONTRACT_ADDRESS)
+        .expect("wrong lending protocol contract address");
     println!(
-        "hello world contrat address:{:?}",
-        hello_world_contract_address
+        "lending protocol contrat address:{:?}",
+        lending_protocol_contract_address
     );
-    let hello_world_contract =
-        HelloWorldServiceManager::new(hello_world_contract_address, &provider);
-    println!("hello contract :{:?}", hello_world_contract);
+    let lending_protocol_contract =
+        LendingProtocolServiceManager::new(lending_protocol_contract_address, &provider);
+    println!("lending contract :{:?}", lending_protocol_contract);
     let word: &str = "EigenWorld";
 
     // If you want to send this tx to holesky , please uncomment the gas price and gas limit
-    let _new_task_tx = hello_world_contract
+    let _new_task_tx = lending_protocol_contract
         .createNewTask(word.to_owned())
         // .gas_price(20000000000)
         // .gas(300000)
@@ -127,15 +127,15 @@ async fn monitor_new_tasks() -> Result<()> {
         println!("Monitoring for new tasks...");
 
         let filter = Filter::new()
-            .address(hello_world_contract_address)
+            .address(lending_protocol_contract_address)
             .from_block(BlockNumberOrTag::Number(latest_processed_block));
 
         let logs = provider.get_logs(&filter).await?;
 
         for log in logs {
             match log.topic0() {
-                Some(&HelloWorldServiceManager::NewTaskCreated::SIGNATURE_HASH) => {
-                    let HelloWorldServiceManager::NewTaskCreated { taskIndex, task } = log
+                Some(&LendingProtocolServiceManager::NewTaskCreated::SIGNATURE_HASH) => {
+                    let LendingProtocolServiceManager::NewTaskCreated { taskIndex, task } = log
                         .log_decode()
                         .expect("Failed to decode log new task created")
                         .inner
@@ -159,8 +159,8 @@ async fn register_operator() -> Result<()> {
     let wallet = LocalWallet::from_str(&KEY).expect("failed to generate wallet ");
 
     let provider = get_provider_with_wallet(KEY.clone());
-    let hello_world_contract_address = Address::from_str(&HELLO_WORLD_CONTRACT_ADDRESS)
-        .expect("wrong hello world contract address");
+    let lending_protocol_contract_address = Address::from_str(&LENDING_PROTOCOL_CONTRACT_ADDRESS)
+        .expect("wrong lending protocol contract address");
     let delegation_manager_contract_address =
         Address::from_str(&DELEGATION_MANAGER_CONTRACT_ADDRESS)
             .expect("wrong delegation manager contract address");
@@ -207,7 +207,7 @@ async fn register_operator() -> Result<()> {
     let digest_hash = elcontracts_reader_instance
         .calculate_operator_avs_registration_digest_hash(
             wallet.address(),
-            hello_world_contract_address,
+            lending_protocol_contract_address,
             salt,
             expiry,
         )

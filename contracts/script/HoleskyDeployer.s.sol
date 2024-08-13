@@ -9,7 +9,7 @@ import {IStrategyManager, IStrategy} from "@eigenlayer/contracts/interfaces/IStr
 import {StrategyBase} from "@eigenlayer/contracts/strategies/StrategyBase.sol";
 import {ECDSAStakeRegistry} from "@eigenlayer-middleware/src/unaudited/ECDSAStakeRegistry.sol";
 import {Quorum, StrategyParams} from "@eigenlayer-middleware/src/interfaces/IECDSAStakeRegistryEventsAndErrors.sol";
-import {HelloWorldServiceManager} from "../src/HelloWorldServiceManager.sol";
+import {LendingProtocolServiceManager} from "../src/LendingProtocolServiceManager.sol";
 import "@eigenlayer/test/mocks/EmptyContract.sol";
 import "../src/ERC20Mock.sol";
 import "forge-std/Script.sol";
@@ -23,15 +23,16 @@ contract HoleskyDeployer is Script, Utils {
     ERC20Mock public erc20Mock;
     StrategyBase public erc20MockStrategy;
 
-    // Hello World contracts
-    ProxyAdmin public helloWorldProxyAdmin;
-    PauserRegistry public helloWorldPauserReg;
+    // Lending Protocol contracts
+    ProxyAdmin public lendingProtocolProxyAdmin;
+    PauserRegistry public lendingProtocolPauserReg;
 
     ECDSAStakeRegistry public stakeRegistryProxy;
     ECDSAStakeRegistry public stakeRegistryImplementation;
 
-    HelloWorldServiceManager public helloWorldServiceManagerProxy;
-    HelloWorldServiceManager public helloWorldServiceManagerImplementation;
+    LendingProtocolServiceManager public lendingProtocolServiceManagerProxy;
+    LendingProtocolServiceManager
+        public lendingProtocolServiceManagerImplementation;
 
     function run() external {
         // Manually pasted addresses of Eigenlayer contracts
@@ -57,49 +58,49 @@ contract HoleskyDeployer is Script, Utils {
             baseStrategyImplementationAddr
         );
 
-        address helloWorldCommunityMultisig = msg.sender;
-        address helloWorldPauser = msg.sender;
+        address lendingProtocolCommunityMultisig = msg.sender;
+        address lendingProtocolPauser = msg.sender;
 
         vm.startBroadcast();
-        _deployHelloWorldContracts(
+        _deployLendingProtocolContracts(
             delegationManager,
             avsDirectory,
             baseStrategyImplementation,
-            helloWorldCommunityMultisig,
-            helloWorldPauser
+            lendingProtocolCommunityMultisig,
+            lendingProtocolPauser
         );
         vm.stopBroadcast();
     }
 
-    function _deployHelloWorldContracts(
+    function _deployLendingProtocolContracts(
         IDelegationManager delegationManager,
         IAVSDirectory avsDirectory,
         IStrategy baseStrategyImplementation,
-        address helloWorldCommunityMultisig,
-        address helloWorldPauser
+        address lendingProtocolCommunityMultisig,
+        address lendingProtocolPauser
     ) internal {
         // Deploy proxy admin for ability to upgrade proxy contracts
-        helloWorldProxyAdmin = new ProxyAdmin();
+        lendingProtocolProxyAdmin = new ProxyAdmin();
 
         // Deploy pauser registry
         {
             address[] memory pausers = new address[](2);
-            pausers[0] = helloWorldPauser;
-            pausers[1] = helloWorldCommunityMultisig;
-            helloWorldPauserReg = new PauserRegistry(
+            pausers[0] = lendingProtocolPauser;
+            pausers[1] = lendingProtocolCommunityMultisig;
+            lendingProtocolPauserReg = new PauserRegistry(
                 pausers,
-                helloWorldCommunityMultisig
+                lendingProtocolCommunityMultisig
             );
         }
 
         EmptyContract emptyContract = new EmptyContract();
 
         // First, deploy upgradeable proxy contracts that will point to the implementations.
-        helloWorldServiceManagerProxy = HelloWorldServiceManager(
+        lendingProtocolServiceManagerProxy = LendingProtocolServiceManager(
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(helloWorldProxyAdmin),
+                    address(lendingProtocolProxyAdmin),
                     ""
                 )
             )
@@ -108,7 +109,7 @@ contract HoleskyDeployer is Script, Utils {
             address(
                 new TransparentUpgradeableProxy(
                     address(emptyContract),
-                    address(helloWorldProxyAdmin),
+                    address(lendingProtocolProxyAdmin),
                     ""
                 )
             )
@@ -120,7 +121,7 @@ contract HoleskyDeployer is Script, Utils {
                 delegationManager
             );
 
-            helloWorldProxyAdmin.upgrade(
+            lendingProtocolProxyAdmin.upgrade(
                 TransparentUpgradeableProxy(
                     payable(address(stakeRegistryProxy))
                 ),
@@ -144,31 +145,31 @@ contract HoleskyDeployer is Script, Utils {
             // Sort the array (though it has only one element, it's trivially sorted)
             // If the array had more elements, you would need to ensure it is sorted by strategy address
 
-            helloWorldProxyAdmin.upgradeAndCall(
+            lendingProtocolProxyAdmin.upgradeAndCall(
                 TransparentUpgradeableProxy(
                     payable(address(stakeRegistryProxy))
                 ),
                 address(stakeRegistryImplementation),
                 abi.encodeWithSelector(
                     ECDSAStakeRegistry.initialize.selector,
-                    address(helloWorldServiceManagerProxy),
+                    address(lendingProtocolServiceManagerProxy),
                     1,
                     quorum
                 )
             );
         }
 
-        helloWorldServiceManagerImplementation = new HelloWorldServiceManager(
+        lendingProtocolServiceManagerImplementation = new LendingProtocolServiceManager(
             address(avsDirectory),
             address(stakeRegistryProxy),
             address(delegationManager)
         );
         // Upgrade the proxy contracts to use the correct implementation contracts and initialize them.
-        helloWorldProxyAdmin.upgrade(
+        lendingProtocolProxyAdmin.upgrade(
             TransparentUpgradeableProxy(
-                payable(address(helloWorldServiceManagerProxy))
+                payable(address(lendingProtocolServiceManagerProxy))
             ),
-            address(helloWorldServiceManagerImplementation)
+            address(lendingProtocolServiceManagerImplementation)
         );
 
         // WRITE JSON DATA
@@ -177,13 +178,13 @@ contract HoleskyDeployer is Script, Utils {
         string memory deployed_addresses = "addresses";
         vm.serializeAddress(
             deployed_addresses,
-            "HelloWorldServiceManagerProxy",
-            address(helloWorldServiceManagerProxy)
+            "LendingProtocolServiceManagerProxy",
+            address(lendingProtocolServiceManagerProxy)
         );
         vm.serializeAddress(
             deployed_addresses,
-            "HelloWorldServiceManagerImplementation",
-            address(helloWorldServiceManagerImplementation)
+            "LendingProtocolServiceManagerImplementation",
+            address(lendingProtocolServiceManagerImplementation)
         );
         vm.serializeAddress(
             deployed_addresses,
@@ -204,6 +205,9 @@ contract HoleskyDeployer is Script, Utils {
             deployed_addresses_output
         );
 
-        writeOutput(finalJson, "hello_world_avs_holesky_deployment_output");
+        writeOutput(
+            finalJson,
+            "lending_protocol_avs_holesky_deployment_output"
+        );
     }
 }

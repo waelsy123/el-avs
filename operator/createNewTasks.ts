@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import * as fs from 'fs';
 
-const { addresses: avsAddresses } = JSON.parse(fs.readFileSync('contracts/script/output/31337/hello_world_avs_deployment_output.json', 'utf-8'));
+const { addresses: avsAddresses } = JSON.parse(fs.readFileSync('contracts/script/output/31337/lending_protocol_avs_deployment_output.json', 'utf-8'));
 
 // Connect to the Ethereum network
 const provider = new ethers.providers.JsonRpcProvider(`http://127.0.0.1:8545`);
@@ -11,7 +11,7 @@ const privateKey = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b
 const wallet = new ethers.Wallet(privateKey, provider);
 
 // Replace with the address of your smart contract
-const contractAddress = avsAddresses.HelloWorldServiceManagerProxy;
+const contractAddress = avsAddresses.LendingProtocolServiceManagerProxy;
 
 // The ABI provided
 const contractABI = [

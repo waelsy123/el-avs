@@ -9,7 +9,7 @@ version = "0.0.1-alpha"
 edition = "2021"
 authors = ["Eigen Layer contributors"]
 rust-version = "1.76"
-repository = "https://github.com/Layr-Labs/hello-world-avs"
+repository = "https://github.com/Layr-Labs/lending-protocol-avs"
 homepage = ""
 license-file = "LICENSE"
 
@@ -27,7 +27,7 @@ rustdoc.all = "warn"
 
 #tokio
 tokio = {version = "1.37.0" , features = ["test-util", "full","sync","rt-multi-thread", "macros"] }
-hello-world-avs-operator = {path = "operator/crates/operator"}
+lending-protocol-avs-operator = {path = "operator/crates/operator"}
 
 #eigen-rs
 eigen-client-elcontracts = {git = "https://github.com/supernovahs/eigensdk-rs", rev = "e700fa2"}
